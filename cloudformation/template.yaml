@@ -1,0 +1,313 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'House Price Prediction ML Pipeline'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: production
+    Description: Environment name for resources
+  
+  SQSQueueName:
+    Type: String
+    Default: property-stream-queue
+    Description: Name of the SQS queue
+
+Resources:
+  # S3 Buckets
+  DataLakeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'house-price-datalake-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: ArchiveOldData
+            Status: Enabled
+            ExpirationInDays: 90
+  
+  BatchBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'house-price-batches-${AWS::AccountId}'
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldBatches
+            Status: Enabled
+            ExpirationInDays: 7
+  
+  DatasetBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'house-price-datasets-${AWS::AccountId}'
+  
+  # DynamoDB Tables
+  ProcessedResultsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ProcessedResults
+      AttributeDefinitions:
+        - AttributeName: house_id
+          AttributeType: N
+        - AttributeName: timestamp
+          AttributeType: S
+        - AttributeName: batch_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: house_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: BatchIndex
+          KeySchema:
+            - AttributeName: batch_id
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+  
+  BatchMetadataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BatchMetadata
+      AttributeDefinitions:
+        - AttributeName: batch_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: batch_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  
+  OptimizationHistoryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: OptimizationHistory
+      AttributeDefinitions:
+        - AttributeName: optimization_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: optimization_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+  
+  PropertyCollectionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: PropertyCollection
+      AttributeDefinitions:
+        - AttributeName: collection_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: collection_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  
+  # SQS Queue
+  PropertyQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref SQSQueueName
+      VisibilityTimeout: 300
+      MessageRetentionPeriod: 86400
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 3
+  
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${SQSQueueName}-dlq'
+      MessageRetentionPeriod: 1209600
+  
+  # IAM Roles
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CustomPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::${DataLakeBucket}/*'
+                  - !Sub 'arn:aws:s3:::${BatchBucket}/*'
+                  - !Sub 'arn:aws:s3:::${DatasetBucket}/*'
+              - Effect: Allow
+                Action:
+                  - dynamodb:*
+                Resource:
+                  - !Sub '${ProcessedResultsTable.Arn}'
+                  - !Sub '${BatchMetadataTable.Arn}'
+                  - !Sub '${OptimizationHistoryTable.Arn}'
+                  - !Sub '${PropertyCollectionTable.Arn}'
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:SendMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt PropertyQueue.Arn
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:GetMetricData
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - lambda:GetFunctionConfiguration
+                  - lambda:UpdateFunctionConfiguration
+                Resource:
+                  - !GetAtt PropertyCollectorFunction.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+  
+  # Lambda Functions
+  DataGeneratorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${EnvironmentName}-data-generator'
+      Runtime: python3.9
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          # Code will be deployed separately
+          def lambda_handler(event, context):
+              return {'statusCode': 200}
+      Timeout: 300
+      MemorySize: 256
+      Environment:
+        Variables:
+          QUEUE_URL: !Ref PropertyQueue
+          BATCH_BUCKET: !Ref BatchBucket
+  
+  PropertyCollectorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${EnvironmentName}-property-collector'
+      Runtime: python3.9
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200}
+      Timeout: 300
+      MemorySize: 256
+      Environment:
+        Variables:
+          QUEUE_URL: !Ref PropertyQueue
+          PROCESSING_BUCKET: !Ref BatchBucket
+          COLLECTION_TABLE: !Ref PropertyCollectionTable
+  
+  PropertyProcessorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${EnvironmentName}-property-processor'
+      Runtime: python3.9
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200}
+      Timeout: 300
+      MemorySize: 1024
+      Environment:
+        Variables:
+          PROCESSED_RESULTS_TABLE: !Ref ProcessedResultsTable
+          BATCH_METADATA_TABLE: !Ref BatchMetadataTable
+          DATASET_BUCKET: !Ref DatasetBucket
+  
+  ThresholdOptimizerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${EnvironmentName}-threshold-optimizer'
+      Runtime: python3.9
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200}
+      Timeout: 300
+      MemorySize: 512
+      Environment:
+        Variables:
+          RESULTS_TABLE: !Ref ProcessedResultsTable
+          OPTIMIZATION_TABLE: !Ref OptimizationHistoryTable
+          SNS_TOPIC_ARN: !Ref AlertTopic
+          COLLECTOR_FUNCTION_NAME: !Ref PropertyCollectorFunction
+          QUEUE_URL: !Ref PropertyQueue
+  
+  # SNS Topic for Alerts
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${EnvironmentName}-ml-alerts'
+  
+  # EventBridge Rules
+  DailyOptimizationRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${EnvironmentName}-threshold-optimization'
+      ScheduleExpression: 'rate(2 minutes)'
+      Targets:
+        - Arn: !GetAtt ThresholdOptimizerFunction.Arn
+          Id: ThresholdOptimizerTarget
+  
+  # Lambda Permissions for EventBridge
+  EventBridgePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ThresholdOptimizerFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DailyOptimizationRule.Arn
+
+Outputs:
+  DataLakeBucketName:
+    Description: Name of the Data Lake S3 bucket
+    Value: !Ref DataLakeBucket
+  
+  BatchBucketName:
+    Description: Name of the Batch S3 bucket
+    Value: !Ref BatchBucket
+  
+  ProcessedResultsTableName:
+    Description: Name of the Processed Results DynamoDB table
+    Value: !Ref ProcessedResultsTable
+  
+  PropertyQueueURL:
+    Description: URL of the SQS queue
+    Value: !Ref PropertyQueue
+  
+  DataGeneratorFunctionArn:
+    Description: ARN of the Data Generator Lambda
+    Value: !GetAtt DataGeneratorFunction.Arn
