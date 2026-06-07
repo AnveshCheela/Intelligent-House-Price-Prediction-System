@@ -24,8 +24,7 @@
 - [Results & Performance](#-results--performance)
 - [Cost Efficiency Formula](#-cost-efficiency-formula)
 - [Deployment](#-deployment)
-- [Team Contributions](#-team-contributions)
-- [Acknowledgments](#-acknowledgments)
+
 - [References](#-references)
 - [License](#-license)
 
@@ -39,9 +38,7 @@ The system dynamically adjusts its own batch sizes and processing thresholds bas
 
 | | |
 |---|---|
-| **Team** | Baikadi Vignesh, Cheela Anvesh, Eslavath Tharun |
-| **Institution** | Indian Institute of Information Technology, Sri City |
-| **Faculty Guide** | Dr. Neha Agarwal |
+| **Developer** | Cheela Anvesh |
 | **Domain** | Cloud Computing, Machine Learning, Serverless Architecture |
 
 ---
@@ -572,21 +569,10 @@ aws lambda invoke \
 
 ---
 
-## 👥 Team Contributions
-
-| Member | Roll Number | Contribution |
-|--------|-------------|-------------|
-| **Baikadi Vignesh** | S20230010038 | System Architecture & ML Pipeline — designed the overall system architecture, implemented the scikit-learn ML pipeline with multi-model comparison, and built the model persistence mechanism |
-| **Cheela Anvesh** | S20230010058 | Core Algorithms & Optimization — developed the adaptive batch processing algorithm, exponential smoothing load prediction, 5-factor dynamic batch sizing, and multi-threshold optimization engine |
-| **Eslavath Tharun** | S20230010081 | Data Pipeline & Integration — built the data generation and ingestion pipeline, implemented S3-triggered processing, DynamoDB integration, and CloudWatch metrics publishing |
-
----
-
 ## 🙏 Acknowledgments
 
-We sincerely thank:
+I sincerely thank:
 
-- **Dr. Neha Agarwal** — Faculty Guide, Indian Institute of Information Technology, Sri City — for her invaluable guidance, mentorship, and continuous support throughout the project
 - **AWS Educate Program** — for providing cloud computing resources and credits that made this project possible
 - **Kaggle** — for the open-source Housing Prices dataset used for model training and evaluation
 
@@ -594,15 +580,17 @@ We sincerely thank:
 
 ## 📚 References
 
-1. **AWS Documentation** — AWS Lambda, Amazon SQS, Amazon S3, Amazon DynamoDB, Amazon CloudWatch, Amazon EventBridge, Amazon SNS Developer Guides. Available at: [https://docs.aws.amazon.com/](https://docs.aws.amazon.com/)
+1. **[Insert Reference Paper Title Here]** — [Insert Authors, Year, Publisher/Journal details here]
 
-2. **MarketsandMarkets** (2021) — *Serverless Architecture Market — Global Forecast to 2025*. Report on growth trends in serverless computing and cost optimization strategies in cloud-native applications.
+2. **AWS Documentation** — AWS Lambda, Amazon SQS, Amazon S3, Amazon DynamoDB, Amazon CloudWatch, Amazon EventBridge, Amazon SNS Developer Guides. Available at: [https://docs.aws.amazon.com/](https://docs.aws.amazon.com/)
 
-3. **AWS CloudWatch Documentation** (2023) — *Using Amazon CloudWatch Dashboards* and *Publishing Custom Metrics*. Available at: [https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/)
+3. **MarketsandMarkets** (2021) — *Serverless Architecture Market — Global Forecast to 2025*. Report on growth trends in serverless computing and cost optimization strategies in cloud-native applications.
 
-4. **Scikit-learn Documentation** — Pedregosa et al. (2011) — *Scikit-learn: Machine Learning in Python*. Journal of Machine Learning Research, 12, pp. 2825–2830. Available at: [https://scikit-learn.org/stable/](https://scikit-learn.org/stable/)
+4. **AWS CloudWatch Documentation** (2023) — *Using Amazon CloudWatch Dashboards* and *Publishing Custom Metrics*. Available at: [https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/)
 
-5. **Kaggle Housing Prices Dataset** — Open-source dataset containing 545 records with 13 property features. Available at: [https://www.kaggle.com/](https://www.kaggle.com/)
+5. **Scikit-learn Documentation** — Pedregosa et al. (2011) — *Scikit-learn: Machine Learning in Python*. Journal of Machine Learning Research, 12, pp. 2825–2830. Available at: [https://scikit-learn.org/stable/](https://scikit-learn.org/stable/)
+
+6. **Kaggle Housing Prices Dataset** — Open-source dataset containing 545 records with 13 property features. Available at: [https://www.kaggle.com/](https://www.kaggle.com/)
 
 ---
 
@@ -610,7 +598,7 @@ We sincerely thank:
 
 MIT License
 
-Copyright (c) 2025 Baikadi Vignesh, Cheela Anvesh, Eslavath Tharun
+Copyright (c) 2025 Cheela Anvesh
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
