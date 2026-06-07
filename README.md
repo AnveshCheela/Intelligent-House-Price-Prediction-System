@@ -580,7 +580,7 @@ I sincerely thank:
 
 ## 📚 References
 
-1. **[Insert Reference Paper Title Here]** — [Insert Authors, Year, Publisher/Journal details here]
+1. **[Simulation_Design_of_Load_Balancing_Optimization_for_Cloud_Computing_Data_Stream_Storage_Based_on_Big]** — [Jing Gao, 2024, Asia-Pacific Conference on Software Engineering, Social Network Analysis and Intelligent Computing (SSAIC)]
 
 2. **AWS Documentation** — AWS Lambda, Amazon SQS, Amazon S3, Amazon DynamoDB, Amazon CloudWatch, Amazon EventBridge, Amazon SNS Developer Guides. Available at: [https://docs.aws.amazon.com/](https://docs.aws.amazon.com/)
 
